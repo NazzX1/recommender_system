@@ -7,6 +7,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder,StandardScaler
+import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
 
 from utils.exception import CustomException
 from utils.logger import logging
@@ -14,9 +16,17 @@ import os
 
 from utils.utils import save_object, LabelEncoderTransformer
 
+
+
+def clean_and_extract_tags(text):
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(text.lower())
+    tags = [token.text for token in doc if token.text.isalnum() and token.text not in STOP_WORDS]
+    return ','.join(tags)
+
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path=os.path.join('data',"proprocessor.pkl")
+    preprocessor_obj_file_path=os.path.join('data', "proprocessor.pkl")
 
 class DataTransformation:
     def __init__(self):
@@ -52,7 +62,7 @@ class DataTransformation:
 
             preprocessor=ColumnTransformer(
                 [
-                ("cat_pipelines",cat_pipeline,categorical_columns),
+                ("cat_pipelines", cat_pipeline, categorical_columns),
                 ("num", num_pipeline, numerical_columns),
                 ]
 
@@ -62,9 +72,9 @@ class DataTransformation:
             return preprocessor
         
         except Exception as e:
-            raise CustomException(e,sys)
+            raise CustomException(e, sys)
         
-    def initiate_data_transformation(self,train_path,test_path):
+    def initiate_data_transformation(self, train_path, test_path):
 
         try:
             train_df=pd.read_csv(train_path)
@@ -76,7 +86,7 @@ class DataTransformation:
             
             preprocessing_obj = self.get_data_transformer_object()
 
-            features = ["user_id", "product_id", "rating_count", 'rating']
+            features = ["user_id", "product_id", "rating_count", 'rating', 'tags']
             
             train_df["rating"] = pd.to_numeric(train_df["rating"], errors="coerce")
             train_df["rating_count"] = train_df["rating_count"].str.replace(',', '')
@@ -89,7 +99,19 @@ class DataTransformation:
             train_df.fillna({"rating": train_df["rating"].median(), "rating_count": train_df["rating_count"].median()}, inplace=True)
             test_df.fillna({"rating": test_df["rating"].median(), "rating_count": test_df["rating_count"].median()}, inplace=True)
 
-            
+            column_contain_tags = ['about_product', "category"]
+
+            train_df["about_product"] = train_df["about_product"].apply(clean_and_extract_tags)
+            test_df["about_product"] = test_df["about_product"].apply(clean_and_extract_tags)
+
+
+            train_df['category'] = train_df['category'].str.replace('|', ',')
+            test_df['category'] = test_df['category'].str.replace('|', ',') 
+
+            train_df['tags'] = train_df[column_contain_tags].apply(lambda x: ', '.join(x), axis=1)
+            test_df['tags'] = test_df[column_contain_tags].apply(lambda x: ', '.join(x), axis=1)
+
+
             train_features = train_df[features]
             test_features = test_df[features]
             
@@ -113,4 +135,4 @@ class DataTransformation:
                 self.data_transformation_config.preprocessor_obj_file_path
             )
         except Exception as e:
-            raise CustomException(e,sys)
+            raise CustomException(e, sys)
