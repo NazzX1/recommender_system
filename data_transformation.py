@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder,StandardScaler, LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder,StandardScaler
 
 from utils.exception import CustomException
 from utils.logger import logging
@@ -42,7 +42,7 @@ class DataTransformation:
             cat_pipeline=Pipeline(
 
                 steps=[
-                ("encoder",LabelEncoderTransformer()),
+                ("encoder", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)),
                 ]
 
             )
@@ -52,7 +52,8 @@ class DataTransformation:
 
             preprocessor=ColumnTransformer(
                 [
-                ("cat_pipelines",cat_pipeline,categorical_columns)
+                ("cat_pipelines",cat_pipeline,categorical_columns),
+                ("num", num_pipeline, numerical_columns),
                 ]
 
 
@@ -72,42 +73,22 @@ class DataTransformation:
             logging.info("Read train and test data completed")
 
             logging.info("Obtaining preprocessing object")
+            
+            # Obtain preprocessing object
+            preprocessing_obj = self.get_data_transformer_object()
 
-            preprocessing_obj=self.get_data_transformer_object()
-            train_columns = ["user_id",
-                            "product_id",
-                            "rating",
-                            "rating_count",
-                            "category",
-                            "product_name",
-                            "img_link",
-                            "about_product"
-                          ]
-            numerical_columns = ["rating", "rating_count"]
+            # Select features for transformation
+            features = ["user_id", "product_id", "rating_counts"]
+            train_features = train_df[features]
+            test_features = test_df[features]
 
-  
-        
-                
-            # input_feature_train_df=train_df.drop(columns=[target_column_name],axis=1)
-            # target_feature_train_df=train_df[target_column_name]
+            # Fit and transform the training data
+            logging.info("Fitting and transforming training data...")
+            train_transformed = preprocessing_obj.fit_transform(train_features)
 
-            # input_feature_test_df=test_df.drop(columns=[target_column_name],axis=1)
-            # target_feature_test_df=test_df[target_column_name]
-           
-
-
-
-            logging.info(
-                f"Applying preprocessing object on training dataframe and testing dataframe."
-            )
-            print(train_df)
-            input_feature_train_arr=preprocessing_obj.fit_transform(input_feature_train_df)
-            input_feature_test_arr=preprocessing_obj.transform(input_feature_test_df)
-            print(input_feature_train_arr)
-            train_arr = np.c_[
-                input_feature_train_arr, np.array(target_feature_train_df)
-            ]
-            test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
+            # Transform the test data
+            logging.info("Transforming testing data...")
+            test_transformed = preprocessing_obj.transform(test_features)
 
             logging.info(f"Saved preprocessing object.")
 
@@ -118,11 +99,9 @@ class DataTransformation:
 
             )
             return (
-                train_arr,
-                # train_df,
-                test_arr,
-                # test_df,
-                self.data_transformation_config.preprocessor_obj_file_path,
+                train_transformed, 
+                test_transformed, 
+                self.data_transformation_config.preprocessor_obj_file_path
             )
         except Exception as e:
             raise CustomException(e,sys)

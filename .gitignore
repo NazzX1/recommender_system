@@ -2,3 +2,4 @@ __pycache__
 __pycache__/*
 logs
 logs/*
+data/Amazon_Sales_Dataset.csv
