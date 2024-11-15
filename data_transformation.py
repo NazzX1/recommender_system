@@ -25,7 +25,7 @@ class DataTransformation:
     def get_data_transformer_object(self):
         
         try:
-            numerical_columns = ['rating_counts']
+            numerical_columns = ['rating_count']
             categorical_columns = [
                                 "user_id",
                                 "product_id",
@@ -74,19 +74,28 @@ class DataTransformation:
 
             logging.info("Obtaining preprocessing object")
             
-            # Obtain preprocessing object
             preprocessing_obj = self.get_data_transformer_object()
 
-            # Select features for transformation
-            features = ["user_id", "product_id", "rating_counts"]
+            features = ["user_id", "product_id", "rating_count", 'rating']
+            
+            train_df["rating"] = pd.to_numeric(train_df["rating"], errors="coerce")
+            train_df["rating_count"] = train_df["rating_count"].str.replace(',', '')
+            train_df["rating_count"] = pd.to_numeric(train_df["rating_count"], errors="coerce")
+
+            test_df["rating"] = pd.to_numeric(test_df["rating"], errors="coerce")
+            test_df["rating_count"] = test_df["rating_count"].str.replace(',', '')
+            test_df["rating_count"] = pd.to_numeric(test_df["rating_count"], errors="coerce")
+
+            train_df.fillna({"rating": train_df["rating"].median(), "rating_count": train_df["rating_count"].median()}, inplace=True)
+            test_df.fillna({"rating": test_df["rating"].median(), "rating_count": test_df["rating_count"].median()}, inplace=True)
+
+            
             train_features = train_df[features]
             test_features = test_df[features]
-
-            # Fit and transform the training data
+            
             logging.info("Fitting and transforming training data...")
             train_transformed = preprocessing_obj.fit_transform(train_features)
 
-            # Transform the test data
             logging.info("Transforming testing data...")
             test_transformed = preprocessing_obj.transform(test_features)
 

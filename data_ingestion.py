@@ -15,8 +15,8 @@ from model_trainer import ModelTrainer
 
 @dataclass
 class DataIngestionConfig:
-    train_data_path: str=os.path.join('data',"cleaned_data.csv")
-    test_data_path: str=os.path.join('data',"cleaned_data.csv")
+    train_data_path: str=os.path.join('data',"train_data.csv")
+    test_data_path: str=os.path.join('data',"test_data.csv")
     raw_data_path: str=os.path.join('data',"Amazon_Sales_Dataset.csv")
 
 class DataIngestion:
@@ -26,7 +26,7 @@ class DataIngestion:
     def initiate_data_ingestion(self):
         logging.info("Entered the data ingestion method or component")
         try:
-            df=pd.read_csv('data/cleaned_data.csv')
+            df=pd.read_csv('data/Amazon_Sales_Dataset.csv')
             logging.info('Read the dataset as dataframe')
             
             user_id_counts = df['user_id'].value_counts()
@@ -48,17 +48,16 @@ class DataIngestion:
             return(
                 self.ingestion_config.train_data_path,
                 self.ingestion_config.test_data_path
-
             )
         except Exception as e:
             raise CustomException(e,sys)
         
 if __name__=="__main__":
-    obj=DataIngestion()
-    train_data,test_data=obj.initiate_data_ingestion()
+    obj = DataIngestion()
+    train_data,test_data = obj.initiate_data_ingestion()
 
-    data_transformation=DataTransformation()
-    train_arr,test_arr,_=data_transformation.initiate_data_transformation(train_data,test_data)
+    data_transformation = DataTransformation()
+    train_arr,test_arr,_ = data_transformation.initiate_data_transformation(train_data,test_data)
 
-    modeltrainer=ModelTrainer()
+    modeltrainer = ModelTrainer()
     print(modeltrainer.initiate_model_trainer(train_arr,test_arr))
