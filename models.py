@@ -1,9 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-
-# Colaborative Filtering
-def CF_model(train, test):
+def Colaborative_Filtering_model(train, test):
     num_users = len(np.unique(train[:,0]))
     num_products =  len(np.unique(train[:,1]))
     print(num_users)
@@ -33,39 +31,33 @@ def CF_model(train, test):
     
     return model
 
-# Content Based 
-def CB_model():
 
+
+def Content_Based_model():
     num_outputs = 32
     tf.random.set_seed(1)
+
     user_NN = tf.keras.models.Sequential([
-           
         tf.keras.layers.Dense(256, activation='relu'),
         tf.keras.layers.Dense(128, activation='relu'),
         tf.keras.layers.Dense(num_outputs, activation='linear'),
-          
     ])
 
     product_NN = tf.keras.models.Sequential([
-             
         tf.keras.layers.Dense(256, activation='relu'),
         tf.keras.layers.Dense(128, activation='relu'),
         tf.keras.layers.Dense(num_outputs, activation='linear'),
-          
     ])
 
-    
     input_user = tf.keras.layers.Input(shape=(1,))
     vu = user_NN(input_user)
-    vu = tf.linalg.l2_normalize(vu, axis=1)
+    vu = tf.keras.layers.Lambda(lambda x: tf.linalg.l2_normalize(x, axis=1))(vu)
 
-    
     input_item = tf.keras.layers.Input(shape=(1,))
     vm = product_NN(input_item)
-    vm = tf.linalg.l2_normalize(vm, axis=1)
+    vm = tf.keras.layers.Lambda(lambda x: tf.linalg.l2_normalize(x, axis=1))(vm)
 
     output = tf.keras.layers.Dot(axes=1)([vu, vm])
-
 
     model = tf.keras.models.Model(inputs=[input_user, input_item], outputs=output)
 
